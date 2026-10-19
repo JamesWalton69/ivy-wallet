@@ -192,6 +192,7 @@ private fun HeaderStickyRow(
         }
 
         var dropdownExpanded by remember { mutableStateOf(false) }
+        val startDayOfMonth = ivyWalletCtx().startDayOfMonth
 
         Box {
             IvyOutlinedButton(
@@ -207,7 +208,7 @@ private fun HeaderStickyRow(
                 ),
                 iconStart = R.drawable.ic_calendar,
                 text = period.toDisplayShort(
-                    startDateOfMonth = ivyWalletCtx().startDayOfMonth,
+                    startDateOfMonth = startDayOfMonth,
                     timeConverter = LocalTimeConverter.current,
                     timeProvider = LocalTimeProvider.current,
                     timeFormatter = LocalTimeFormatter.current,
@@ -264,7 +265,7 @@ private fun HeaderStickyRow(
                     },
                     onClick = {
                         dropdownExpanded = false
-                        onSelectPeriod(TimePeriod.currentMonth(ivyWalletCtx().startDayOfMonth))
+                        onSelectPeriod(TimePeriod.currentMonth(startDayOfMonth))
                     }
                 )
                 HorizontalDivider(color = UI.colors.medium)
