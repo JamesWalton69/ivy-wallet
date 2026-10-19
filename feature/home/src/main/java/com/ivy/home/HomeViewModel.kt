@@ -510,21 +510,13 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun onSelectNextMonth() {
-        val month = period.month
-        val year = period.year ?: dateNowUTC().year
-        val period = month?.incrementMonthPeriod(ivyContext, 1L, year = year)
-        if (period != null) {
-            setPeriod(period)
-        }
+        val nextPeriod = period.next(ivyContext, ivyContext.startDayOfMonth)
+        setPeriod(nextPeriod)
     }
 
     private suspend fun onSelectPreviousMonth() {
-        val month = period.month
-        val year = period.year ?: dateNowUTC().year
-        val period = month?.incrementMonthPeriod(ivyContext, -1L, year = year)
-        if (period != null) {
-            setPeriod(period)
-        }
+        val prevPeriod = period.previous(ivyContext, ivyContext.startDayOfMonth)
+        setPeriod(prevPeriod)
     }
 
     private suspend fun setPeriod(period: TimePeriod) {

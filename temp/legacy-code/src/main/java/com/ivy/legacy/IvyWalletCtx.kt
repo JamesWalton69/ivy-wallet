@@ -47,9 +47,7 @@ class IvyWalletCtx @Inject constructor() : IvyContext() {
 
     @Deprecated("Legacy code. Don't use it, please.")
     var selectedPeriod: com.ivy.legacy.data.model.TimePeriod =
-        com.ivy.legacy.data.model.TimePeriod.currentMonth(
-            startDayOfMonth = startDayOfMonth // this is default value
-        )
+        com.ivy.legacy.data.model.TimePeriod.today()
 
     @Deprecated("Legacy code. Don't use it, please.")
     private var selectedPeriodInitialized = false
@@ -60,9 +58,7 @@ class IvyWalletCtx @Inject constructor() : IvyContext() {
         forceReinitialize: Boolean = false
     ): com.ivy.legacy.data.model.TimePeriod {
         if (!selectedPeriodInitialized || forceReinitialize) {
-            selectedPeriod = com.ivy.legacy.data.model.TimePeriod.currentMonth(
-                startDayOfMonth = startDayOfMonth
-            )
+            selectedPeriod = com.ivy.legacy.data.model.TimePeriod.today()
             selectedPeriodInitialized = true
         }
 

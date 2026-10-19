@@ -3,16 +3,29 @@ package com.ivy.legacy.data.model
 import androidx.compose.runtime.Immutable
 import com.ivy.base.time.TimeConverter
 import com.ivy.base.time.TimeProvider
+import com.ivy.legacy.IvyWalletCtx
 import com.ivy.legacy.utils.atEndOfDay
+import com.ivy.legacy.utils.dateNowLocal
 import com.ivy.legacy.utils.dateNowUTC
 import com.ivy.legacy.utils.endOfMonth
+import com.ivy.legacy.utils.formatLocal
 import com.ivy.legacy.utils.startOfMonth
 import com.ivy.legacy.utils.withDayOfMonthSafe
 import com.ivy.ui.time.TimeFormatter
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.temporal.TemporalAdjusters
 
 private const val MonthNameAbbreviationLength = 3
+
+enum class PeriodType {
+    DAY,
+    WEEK,
+    MONTH,
+    CUSTOM
+}
 
 @Suppress("DataClassFunctions")
 @Immutable
@@ -21,8 +34,29 @@ data class TimePeriod(
     val year: Int? = null,
     val fromToRange: FromToTimeRange? = null,
     val lastNRange: LastNTimeRange? = null,
+    val day: LocalDate? = null,
+    val weekStart: LocalDate? = null,
 ) {
+    val periodType: PeriodType
+        get() = when {
+            day != null -> PeriodType.DAY
+            weekStart != null -> PeriodType.WEEK
+            month != null -> PeriodType.MONTH
+            else -> PeriodType.CUSTOM
+        }
+
     companion object {
+        fun today(timeProvider: TimeProvider? = null): TimePeriod {
+            val date = timeProvider?.localNow()?.toLocalDate() ?: dateNowLocal()
+            return TimePeriod(day = date)
+        }
+
+        fun currentWeek(timeProvider: TimeProvider? = null): TimePeriod {
+            val date = timeProvider?.localNow()?.toLocalDate() ?: dateNowLocal()
+            val monday = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+            return TimePeriod(weekStart = monday)
+        }
+
         /**
          * Examples:
          * 1. startDateOfMonth = 1, today = Nov. 10
@@ -60,7 +94,7 @@ data class TimePeriod(
     }
 
     fun isValid(): Boolean =
-        month != null || fromToRange != null || lastNRange != null
+        day != null || weekStart != null || month != null || fromToRange != null || lastNRange != null
 
     fun toRange(
         startDateOfMonth: Int,
@@ -68,6 +102,25 @@ data class TimePeriod(
         timeProvider: TimeProvider,
     ): FromToTimeRange = with(timeConverter) {
         when {
+            day != null -> {
+                val from = day.atStartOfDay().toUTC()
+                val to = day.atTime(LocalTime.MAX).toUTC()
+                FromToTimeRange(
+                    from = from,
+                    to = to
+                )
+            }
+
+            weekStart != null -> {
+                val from = weekStart.atStartOfDay().toUTC()
+                val weekEnd = weekStart.plusDays(6)
+                val to = weekEnd.atTime(LocalTime.MAX).toUTC()
+                FromToTimeRange(
+                    from = from,
+                    to = to
+                )
+            }
+
             month != null -> {
                 val date = if (year != null) month.toDate().withYear(year) else month.toDate()
                 val (from, to) = if (startDateOfMonth != 1) {
@@ -136,6 +189,32 @@ data class TimePeriod(
         timeFormatter: TimeFormatter,
     ): String = with(timeFormatter) {
         when {
+            day != null -> {
+                val today = timeProvider.localNow().toLocalDate()
+                when (day) {
+                    today -> "Today"
+                    today.minusDays(1) -> "Yesterday"
+                    today.plusDays(1) -> "Tomorrow"
+                    else -> {
+                        val pattern = if (today.year == day.year) "MMM dd" else "MMM dd, yyyy"
+                        day.formatLocal(pattern)
+                    }
+                }
+            }
+
+            weekStart != null -> {
+                val today = timeProvider.localNow().toLocalDate()
+                val currentMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                if (weekStart == currentMonday) {
+                    "This Week"
+                } else if (weekStart == currentMonday.minusWeeks(1)) {
+                    "Last Week"
+                } else {
+                    val weekEnd = weekStart.plusDays(6)
+                    "${weekStart.formatLocal("MMM d")} - ${weekEnd.formatLocal("MMM d")}"
+                }
+            }
+
             month != null -> {
                 if (startDateOfMonth == 1) {
                     displayMonthStartingOn1st(month = month, timeProvider)
@@ -169,6 +248,30 @@ data class TimePeriod(
         timeFormatter: TimeFormatter
     ): String {
         return when {
+            day != null -> {
+                val today = timeProvider.localNow().toLocalDate()
+                when (day) {
+                    today -> "Today"
+                    today.minusDays(1) -> "Yesterday"
+                    today.plusDays(1) -> "Tomorrow"
+                    else -> {
+                        val pattern = if (today.year == day.year) "MMM dd" else "MMM dd, yyyy"
+                        day.formatLocal(pattern)
+                    }
+                }
+            }
+
+            weekStart != null -> {
+                val today = timeProvider.localNow().toLocalDate()
+                val currentMonday = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                if (weekStart == currentMonday) {
+                    "This Week"
+                } else {
+                    val weekEnd = weekStart.plusDays(6)
+                    "${weekStart.formatLocal("MMM d")} - ${weekEnd.formatLocal("MMM d")}"
+                }
+            }
+
             month != null -> {
                 if (startDateOfMonth == 1) {
                     displayMonthStartingOn1st(month = month, timeProvider)
@@ -196,6 +299,56 @@ data class TimePeriod(
                     timeProvider = timeProvider
                 ).toDisplay(timeFormatter)
             }
+        }
+    }
+
+    fun next(
+        ivyContext: IvyWalletCtx,
+        startDayOfMonth: Int,
+    ): TimePeriod {
+        return when {
+            day != null -> {
+                val nextDay = day.plusDays(1)
+                val newPeriod = TimePeriod(day = nextDay)
+                ivyContext.updateSelectedPeriodInMemory(newPeriod)
+                newPeriod
+            }
+            weekStart != null -> {
+                val nextWeek = weekStart.plusWeeks(1)
+                val newPeriod = TimePeriod(weekStart = nextWeek)
+                ivyContext.updateSelectedPeriodInMemory(newPeriod)
+                newPeriod
+            }
+            month != null -> {
+                val year = year ?: dateNowUTC().year
+                month.incrementMonthPeriod(ivyContext, 1L, year = year)
+            }
+            else -> this
+        }
+    }
+
+    fun previous(
+        ivyContext: IvyWalletCtx,
+        startDayOfMonth: Int,
+    ): TimePeriod {
+        return when {
+            day != null -> {
+                val prevDay = day.minusDays(1)
+                val newPeriod = TimePeriod(day = prevDay)
+                ivyContext.updateSelectedPeriodInMemory(newPeriod)
+                newPeriod
+            }
+            weekStart != null -> {
+                val prevWeek = weekStart.minusWeeks(1)
+                val newPeriod = TimePeriod(weekStart = prevWeek)
+                ivyContext.updateSelectedPeriodInMemory(newPeriod)
+                newPeriod
+            }
+            month != null -> {
+                val year = year ?: dateNowUTC().year
+                month.incrementMonthPeriod(ivyContext, -1L, year = year)
+            }
+            else -> this
         }
     }
 

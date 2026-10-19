@@ -16,9 +16,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -36,6 +42,7 @@ import com.ivy.design.api.LocalTimeProvider
 import com.ivy.design.l0_system.UI
 import com.ivy.design.l0_system.style
 import com.ivy.design.utils.thenIf
+import com.ivy.legacy.data.model.PeriodType
 import com.ivy.legacy.data.model.TimePeriod
 import com.ivy.legacy.ivyWalletCtx
 import com.ivy.legacy.ui.component.transaction.TransactionsDividerLine
@@ -77,6 +84,7 @@ internal fun HomeHeader(
     hideBalance: Boolean,
     onHiddenBalanceClick: () -> Unit,
     onSelectPreviousMonth: () -> Unit,
+    onSelectPeriod: (TimePeriod) -> Unit = {},
 ) {
     Column {
         val percentExpanded by animateFloatAsState(
@@ -102,6 +110,7 @@ internal fun HomeHeader(
             onHiddenBalanceClick = onHiddenBalanceClick,
             onSelectNextMonth = onSelectNextMonth,
             onSelectPreviousMonth = onSelectPreviousMonth,
+            onSelectPeriod = onSelectPeriod,
         )
 
         Spacer(Modifier.height(16.dp))
@@ -128,6 +137,7 @@ private fun HeaderStickyRow(
     hideBalance: Boolean,
     onHiddenBalanceClick: () -> Unit,
     onSelectPreviousMonth: () -> Unit,
+    onSelectPeriod: (TimePeriod) -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -181,32 +191,180 @@ private fun HeaderStickyRow(
             }
         }
 
-        IvyOutlinedButton(
-            modifier = Modifier.horizontalSwipeListener(
-                sensitivity = 75,
-                state = rememberSwipeListenerState(),
-                onSwipeLeft = {
-                    onSelectNextMonth()
-                },
-                onSwipeRight = {
-                    onSelectPreviousMonth()
-                },
-            ),
-            iconStart = R.drawable.ic_calendar,
-            text = period.toDisplayShort(
-                startDateOfMonth = ivyWalletCtx().startDayOfMonth,
-                timeConverter = LocalTimeConverter.current,
-                timeProvider = LocalTimeProvider.current,
-                timeFormatter = LocalTimeFormatter.current,
-            ),
-            minWidth = 130.dp,
-        ) {
-            onShowMonthModal()
+        var dropdownExpanded by remember { mutableStateOf(false) }
+
+        Box {
+            IvyOutlinedButton(
+                modifier = Modifier.horizontalSwipeListener(
+                    sensitivity = 75,
+                    state = rememberSwipeListenerState(),
+                    onSwipeLeft = {
+                        onSelectNextMonth()
+                    },
+                    onSwipeRight = {
+                        onSelectPreviousMonth()
+                    },
+                ),
+                iconStart = R.drawable.ic_calendar,
+                text = period.toDisplayShort(
+                    startDateOfMonth = ivyWalletCtx().startDayOfMonth,
+                    timeConverter = LocalTimeConverter.current,
+                    timeProvider = LocalTimeProvider.current,
+                    timeFormatter = LocalTimeFormatter.current,
+                ),
+                minWidth = 130.dp,
+            ) {
+                dropdownExpanded = true
+            }
+
+            DropdownMenu(
+                expanded = dropdownExpanded,
+                onDismissRequest = { dropdownExpanded = false },
+                modifier = Modifier.background(UI.colors.pure)
+            ) {
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "Today (Day)",
+                            style = UI.typo.b2.style(
+                                color = UI.colors.pureInverse,
+                                fontWeight = if (period.periodType == PeriodType.DAY) FontWeight.ExtraBold else FontWeight.Normal
+                            )
+                        )
+                    },
+                    onClick = {
+                        dropdownExpanded = false
+                        onSelectPeriod(TimePeriod.today())
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "This Week (Week)",
+                            style = UI.typo.b2.style(
+                                color = UI.colors.pureInverse,
+                                fontWeight = if (period.periodType == PeriodType.WEEK) FontWeight.ExtraBold else FontWeight.Normal
+                            )
+                        )
+                    },
+                    onClick = {
+                        dropdownExpanded = false
+                        onSelectPeriod(TimePeriod.currentWeek())
+                    }
+                )
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "This Month (Month)",
+                            style = UI.typo.b2.style(
+                                color = UI.colors.pureInverse,
+                                fontWeight = if (period.periodType == PeriodType.MONTH) FontWeight.ExtraBold else FontWeight.Normal
+                            )
+                        )
+                    },
+                    onClick = {
+                        dropdownExpanded = false
+                        onSelectPeriod(TimePeriod.currentMonth(ivyWalletCtx().startDayOfMonth))
+                    }
+                )
+                HorizontalDivider(color = UI.colors.medium)
+                DropdownMenuItem(
+                    text = {
+                        Text(
+                            text = "More options...",
+                            style = UI.typo.b2.style(
+                                color = UI.colors.gray,
+                                fontWeight = FontWeight.Normal
+                            )
+                        )
+                    },
+                    onClick = {
+                        dropdownExpanded = false
+                        onShowMonthModal()
+                    }
+                )
+            }
         }
 
         Spacer(Modifier.width(12.dp))
 
         Spacer(Modifier.width(40.dp)) // settings menu button spacer
+    }
+}
+
+@Composable
+fun TotalBalanceCard(
+    currency: String,
+    balance: Double,
+    hideBalance: Boolean,
+    onBalanceClick: () -> Unit,
+    onHiddenBalanceClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .clip(UI.shapes.r4)
+            .background(UI.colors.medium.copy(alpha = 0.35f))
+            .clickableNoIndication(rememberInteractionSource()) {
+                if (hideBalance) {
+                    onHiddenBalanceClick()
+                } else {
+                    onBalanceClick()
+                }
+            }
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .clip(UI.shapes.rFull)
+                    .background(UI.colors.primary.copy(alpha = 0.15f))
+                    .padding(8.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                IvyIcon(
+                    icon = R.drawable.ic_wallet,
+                    tint = UI.colors.primary,
+                )
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            Column {
+                Text(
+                    text = "Total money",
+                    style = UI.typo.c.style(
+                        color = UI.colors.gray,
+                        fontWeight = FontWeight.Bold,
+                    )
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                Text(
+                    text = if (hideBalance) {
+                        "••••••"
+                    } else {
+                        "${balance.format(currency)} $currency"
+                    },
+                    style = UI.typo.b1.style(
+                        color = UI.colors.pureInverse,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                )
+            }
+        }
+
+        IvyIcon(
+            icon = R.drawable.ic_arrow_right,
+            tint = UI.colors.gray,
+        )
     }
 }
 
@@ -253,7 +411,17 @@ fun CashFlowInfo(
             hiddenMode = hideBalance
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        TotalBalanceCard(
+            currency = currency,
+            balance = balance,
+            hideBalance = hideBalance,
+            onBalanceClick = onBalanceClick,
+            onHiddenBalanceClick = onHiddenBalanceClick
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         IncomeExpenses(
             percentExpanded = percentExpanded,

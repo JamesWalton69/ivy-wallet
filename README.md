@@ -52,6 +52,19 @@ Ivy Wallet may lack some of the features you're looking for, but it truly shines
 > To support our free open source project, please give it a star. ⭐
 > This means a lot to us. Thank you so much! [![GitHub Repo stars](https://img.shields.io/github/stars/Ivy-Apps/ivy-wallet?style=social)](https://github.com/Ivy-Apps/ivy-wallet/stargazers)
 
+## ✨ What's New in this Update
+
+This update introduces day/week/month period filtering and dedicated total account balance tracking:
+
+- ☀️ **Default Day (Today) Launch View**: The app opens directly to today's in/out cash flow instead of defaulting to the entire month, giving you an immediate pulse on daily spending and earnings.
+- ⚡ **Quick Period Dropdown**: Switch perspectives with a single tap on the top-bar period button:
+  - **Today (Day)**
+  - **This Week (Week)** (Monday – Sunday)
+  - **This Month (Month)**
+  - **Custom Range / More options...**
+- 💳 **Total Balance ("Total Money") Card**: A sleek overview card right on the Home tab displaying your combined total balance across all accounts. Supports privacy hiding and tap-to-inspect balance details.
+- 🔄 **Smart Multi-Period Navigation**: The left/right period arrows dynamically advance or rewind based on the active view (+1/-1 day in Day mode, +1/-1 week in Week mode, +1/-1 month in Month mode).
+
 ## Project Requirements
 
 - Java 17+
