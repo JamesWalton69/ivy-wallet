@@ -130,12 +130,15 @@ fun BoxWithConstraintsScope.HomeUi(
                 ?.firstVisibleItemScrollOffset ?: 0
         )
 
+        val netCashFlow = (uiState.stats.income - uiState.stats.expense).toDouble()
+
         HomeHeader(
             expanded = uiState.expanded,
             name = uiState.name,
             period = uiState.period,
             currency = baseCurrency,
             balance = uiState.balance.toDouble(),
+            netCashFlow = netCashFlow,
             hideBalance = uiState.hideBalance,
 
             onShowMonthModal = {

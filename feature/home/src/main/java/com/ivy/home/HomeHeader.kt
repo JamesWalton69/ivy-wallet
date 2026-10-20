@@ -63,7 +63,9 @@ import com.ivy.wallet.ui.theme.Gradient
 import com.ivy.wallet.ui.theme.GradientGreen
 import com.ivy.wallet.ui.theme.Gray
 import com.ivy.wallet.ui.theme.Green
+import com.ivy.wallet.ui.theme.Red
 import com.ivy.wallet.ui.theme.White
+import com.ivy.wallet.ui.theme.components.BalanceRow
 import com.ivy.wallet.ui.theme.components.BalanceRowMini
 import com.ivy.wallet.ui.theme.components.IvyIcon
 import com.ivy.wallet.ui.theme.components.IvyOutlinedButton
@@ -85,6 +87,7 @@ internal fun HomeHeader(
     onHiddenBalanceClick: () -> Unit,
     onSelectPreviousMonth: () -> Unit,
     onSelectPeriod: (TimePeriod) -> Unit = {},
+    netCashFlow: Double = 0.0,
 ) {
     Column {
         val percentExpanded by animateFloatAsState(
@@ -103,6 +106,7 @@ internal fun HomeHeader(
             period = period,
             currency = currency,
             balance = balance,
+            netCashFlow = netCashFlow,
             hideBalance = hideBalance,
 
             onShowMonthModal = onShowMonthModal,
@@ -131,6 +135,7 @@ private fun HeaderStickyRow(
     period: TimePeriod,
     currency: String,
     balance: Double,
+    netCashFlow: Double,
     onShowMonthModal: () -> Unit,
     onBalanceClick: () -> Unit,
     onSelectNextMonth: () -> Unit,
@@ -170,20 +175,28 @@ private fun HeaderStickyRow(
                 maxLines = 1,
             )
 
-            // Balance mini row
+            // Balance mini row (shows net cash flow of selected period)
             if (percentExpanded < 1f) {
+                val miniPrefix = when {
+                    netCashFlow > 0.0 -> "+"
+                    netCashFlow < 0.0 -> "-"
+                    else -> null
+                }
+                val miniColor = when {
+                    netCashFlow > 0.0 -> Green
+                    netCashFlow < 0.0 -> Red
+                    else -> UI.colors.pureInverse
+                }
                 BalanceRowMini(
                     modifier = Modifier
                         .alpha(alpha = 1f - percentExpanded)
                         .clickableNoIndication(rememberInteractionSource()) {
-                            if (hideBalance) {
-                                onHiddenBalanceClick()
-                            } else {
-                                onBalanceClick()
-                            }
+                            onHiddenBalanceClick()
                         },
                     currency = currency,
-                    balance = balance,
+                    balance = netCashFlow.absoluteValue,
+                    balanceAmountPrefix = miniPrefix,
+                    textColor = miniColor,
                     shortenBigNumbers = true,
                     hiddenMode = hideBalance,
                     doubleRowDisplay = true,
@@ -390,6 +403,18 @@ fun CashFlowInfo(
     onHiddenBalanceClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val cashflow = monthlyIncome - monthlyExpenses
+    val prefix = when {
+        cashflow > 0.0 -> "+"
+        cashflow < 0.0 -> "-"
+        else -> null
+    }
+    val cashflowColor = when {
+        cashflow > 0.0 -> Green
+        cashflow < 0.0 -> Red
+        else -> UI.colors.pureInverse
+    }
+
     Column(
         modifier = modifier
             .verticalSwipeListener(
@@ -400,7 +425,25 @@ fun CashFlowInfo(
                 },
             ),
     ) {
+        // 1. Big Net Cash Flow for the selected period
+        BalanceRow(
+            modifier = Modifier
+                .padding(horizontal = 20.dp)
+                .clickableNoIndication(rememberInteractionSource()) {
+                    onHiddenBalanceClick()
+                }
+                .testTag("home_net_cashflow"),
+            currency = currency,
+            balance = cashflow.absoluteValue,
+            balanceAmountPrefix = prefix,
+            textColor = cashflowColor,
+            shortenBigNumbers = true,
+            hiddenMode = hideBalance
+        )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // 2. Total Balance ("Total money") card
         TotalBalanceCard(
             currency = currency,
             balance = balance,
@@ -411,6 +454,7 @@ fun CashFlowInfo(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // 3. Income & Expense cards
         IncomeExpenses(
             percentExpanded = percentExpanded,
             currency = currency,
@@ -419,30 +463,6 @@ fun CashFlowInfo(
             hideIncome = hideIncome,
             onHiddenIncomeClick = onHiddenIncomeClick
         )
-
-        val cashflow = monthlyIncome - monthlyExpenses
-        if (cashflow != 0.0 && !hideBalance) {
-            Spacer(Modifier.height(12.dp))
-
-            Text(
-                modifier = Modifier.padding(
-                    start = 24.dp,
-                ),
-                text = stringResource(
-                    R.string.cashflow,
-                    (if (cashflow > 0) "+" else ""),
-                    cashflow.format(currency),
-                    currency,
-                ),
-                style = UI.typo.nB2.style(
-                    color = if (cashflow < 0) Gray else Green,
-                ),
-            )
-
-            Spacer(Modifier.height(4.dp))
-        } else {
-            Spacer(Modifier.height(16.dp))
-        }
     }
 }
 
