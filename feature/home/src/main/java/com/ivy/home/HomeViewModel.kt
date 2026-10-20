@@ -260,9 +260,12 @@ class HomeViewModel @Inject constructor(
         suspend {
             val startDay = startDayOfMonthAct(Unit)
             ivyContext.initSelectedPeriodInMemory(
-                startDayOfMonth = startDay
+                startDayOfMonth = startDay,
+                forceReinitialize = true
             )
-        } thenInvokeAfter ::reload
+        } thenInvokeAfter {
+            reload(TimePeriod.today(timeProvider))
+        }
     }
 
     // -----------------------------------------------------------------------------------
@@ -520,6 +523,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private suspend fun setPeriod(period: TimePeriod) {
+        ivyContext.updateSelectedPeriodInMemory(period)
         reload(period)
     }
 

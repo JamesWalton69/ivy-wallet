@@ -5,6 +5,7 @@ import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -63,7 +64,6 @@ import com.ivy.wallet.ui.theme.GradientGreen
 import com.ivy.wallet.ui.theme.Gray
 import com.ivy.wallet.ui.theme.Green
 import com.ivy.wallet.ui.theme.White
-import com.ivy.wallet.ui.theme.components.BalanceRow
 import com.ivy.wallet.ui.theme.components.BalanceRowMini
 import com.ivy.wallet.ui.theme.components.IvyIcon
 import com.ivy.wallet.ui.theme.components.IvyOutlinedButton
@@ -307,7 +307,8 @@ fun TotalBalanceCard(
             .fillMaxWidth()
             .padding(horizontal = 16.dp)
             .clip(UI.shapes.r4)
-            .background(UI.colors.medium.copy(alpha = 0.35f))
+            .background(UI.colors.pure)
+            .border(2.dp, UI.colors.medium, UI.shapes.r4)
             .clickableNoIndication(rememberInteractionSource()) {
                 if (hideBalance) {
                     onHiddenBalanceClick()
@@ -315,7 +316,7 @@ fun TotalBalanceCard(
                     onBalanceClick()
                 }
             }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
@@ -325,8 +326,8 @@ fun TotalBalanceCard(
             Box(
                 modifier = Modifier
                     .clip(UI.shapes.rFull)
-                    .background(UI.colors.primary.copy(alpha = 0.15f))
-                    .padding(8.dp),
+                    .background(UI.colors.primary.copy(alpha = 0.12f))
+                    .padding(10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 IvyIcon(
@@ -335,30 +336,34 @@ fun TotalBalanceCard(
                 )
             }
 
-            Spacer(Modifier.width(12.dp))
+            Spacer(Modifier.width(16.dp))
 
             Column {
                 Text(
-                    text = "Total money",
+                    text = stringResource(R.string.total_balance),
                     style = UI.typo.c.style(
                         color = UI.colors.gray,
-                        fontWeight = FontWeight.Bold,
-                    )
-                )
-
-                Spacer(Modifier.height(2.dp))
-
-                Text(
-                    text = if (hideBalance) {
-                        "••••••"
-                    } else {
-                        "${balance.format(currency)} $currency"
-                    },
-                    style = UI.typo.b1.style(
-                        color = UI.colors.pureInverse,
                         fontWeight = FontWeight.ExtraBold,
                     )
                 )
+
+                Spacer(Modifier.height(4.dp))
+
+                if (hideBalance) {
+                    Text(
+                        text = "••••••",
+                        style = UI.typo.b1.style(
+                            color = UI.colors.pureInverse,
+                            fontWeight = FontWeight.ExtraBold,
+                        )
+                    )
+                } else {
+                    AmountCurrencyB1(
+                        amount = balance,
+                        currency = currency,
+                        textColor = UI.colors.pureInverse,
+                    )
+                }
             }
         }
 
@@ -395,24 +400,6 @@ fun CashFlowInfo(
                 },
             ),
     ) {
-        BalanceRow(
-            modifier = Modifier
-                .padding(horizontal = 20.dp)
-                .clickableNoIndication(rememberInteractionSource()) {
-                    if (hideBalance) {
-                        onHiddenBalanceClick()
-                    } else {
-                        onBalanceClick()
-                    }
-                }
-                .testTag("home_balance"),
-            currency = currency,
-            balance = balance,
-            shortenBigNumbers = true,
-            hiddenMode = hideBalance
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         TotalBalanceCard(
             currency = currency,
